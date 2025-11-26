@@ -16,7 +16,9 @@ export class SearchPagesComponent {
   gifs = signal<Gif[]>([]);
 
   onSearch(query: string){
-    this.searchGifService.searchGifs(query);
-    console.log({query});
+    this.searchGifService.searchGifs(query).subscribe( (resp)=>{
+         this.gifs.set(resp);
+    });
+
   }
 }

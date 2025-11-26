@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 import { environment } from '@environments/environment';
 import { GiphyResponse } from '../interfaces/giphy.interfaces';
 import { GifMapper } from '../mapper/gif.mapper';
 import { Gif } from '../interfaces/gif.interface';
+import { map, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +12,10 @@ import { Gif } from '../interfaces/gif.interface';
 export class GifService {
   trendingGifs = signal<Gif[]>([]);
   trendinGifsLoading = signal(true);
+
+
+  searchHistory = signal<Record<string, Gif[]>>({});
+  searchHistoryKeys = computed( ()=> Object.keys(this.searchHistory()));
 
   constructor(private http: HttpClient) {
     console.log('servicio creado');
@@ -33,18 +38,32 @@ export class GifService {
       });
   }
 
-  //Search Gifs request 
+  //Search Gifs request: Este metodo devuelve un Observable<GiphyResponse>
   searchGifs(query: string) {
-    this.http
+   return this.http
     .get<GiphyResponse>(`${environment.giphyUrl}/gifs/search`, {
       params: {
         api_key: environment.giphyApiKey,
         q: query,
         limit: 20,
       },
-    })
-    .subscribe((resp)=>{
-      console.log({resp});
-    });
-      }
+    }).
+    //Los operadores del pipe de RxJS nos permiten transformar la respuesta del Observable
+    pipe(
+      map(({data})=> data),
+      map((items)=> GifMapper.mapGiphyItemsToGifArray(items)),
+
+      //Operador tap nos permite ejecutar efectos secundarios sin alterar los datos que fluyen a traves del Observable
+      tap( (items) => {
+        this.searchHistory.update( (history) => ({
+          ...history,
+           [query.toLocaleLowerCase()]: items,
+        }));
+      })
+    );
+  }
+
+  getHistoryGifs(query: string): Gif[]{
+    return this.searchHistory()[query] ?? [];
+  }
 }

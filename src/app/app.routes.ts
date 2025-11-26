@@ -18,6 +18,14 @@ export const routes: Routes = [
           ).then((m) => m.SearchPagesComponent),
       },
       {
+        //Ejemplo de argumento por url
+        path: 'history/:query',
+        loadComponent: () =>
+          import(
+            './gifs/pages/gif-history.component/gif-history.component'
+          ).then((m) => m.GifHistoryComponent),
+      },
+      {
         path: 'trending',
         loadComponent: () =>
           import(
